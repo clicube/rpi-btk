@@ -1,0 +1,35 @@
+- hosts: all
+  remote_user: pi
+  become: true
+  tasks:
+    - name: Install apt packages
+      apt:
+        update-cache: true
+        name:
+          - python3
+          - python3-pip
+          - python3-dbus
+    - name: Install pip packages
+      pip:
+        name:
+          - evdev
+        executable: pip3
+    - name: Update bluetooth service option
+      replace: >-
+        dest='/lib/systemd/system/bluetooth.service'
+        regexp='^ExecStart=/usr/lib/bluetooth/bluetoothd$'
+        replace='ExecStart=/usr/lib/bluetooth/bluetoothd -P input'
+      notify: Restart bluetooth service
+    - name: Copy DBUS service file
+      copy:
+        src: files/dbus/org.yaptb.btkbservice.conf
+        dest: /etc/dbus-1/system.d
+    - name: Copy server files
+      copy:
+        src: files/server/
+        dest: /opt/btkb-server
+  handlers:
+    - name: Restart bluetooth service
+      service:
+        name: bluetooth
+        state: restarted
